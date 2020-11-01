@@ -1,0 +1,81 @@
+
+This solution replies on the solution of Assignment 3 (CS 464/564, Winter 2020), by Stefan Bruda
+
+
+1. User guide: 
+
+   The following command line is accepted:
+
+   bbserv [-d] [-f] [-p port] [-s port] [-T tmax] [-b bbfile]
+
+   where
+
+      -b overrides (or sets) the file name bbfile according to its argument
+      -T overrides Tmax according to its argument
+      -p overrides the port number bp according to its argument
+      -s overrides the port number sp according to its argument
+      -f (with no argument) forces d to false or 0
+      -d (with no argument) forces D to true or 1
+
+   The server works with any kind telnet-likely client.
+   This configuration file contains pairs consisting of a variable name and a value for that variable, 
+   separated by an = character (with no blanks).
+   It includes (in no particular order) the following definitions:
+      
+      THMAX=Tmax
+      BBPORT=bp
+      SYNCPORT=sp
+      BBFILE=bbfile
+      PEERS=peers
+      DAEMON=d
+      DEBUG=D
+
+   where Tmax, bp, and sp are strings representing positive numbers, bbfile is a file name, D and d are Boolean
+   values and can be specified using either the numbers 0 and 1 or the strings false and true. The list of
+   peers peers consists of strings separated by blanks. Each such a string has the form host:port, where host
+   is a host name and port is a positive number.
+
+   For the replicated database system,
+   The server takes PEERS as replicated database, but it connects to replicated database once a client connects to bulletin server.
+   If peers are offline at that time, server will erase them in the list of replicated database.
+   Therefore, synchronization only happens iff PEERS are online before the first client come in.
+   If replicated peers didn't set ur server as replicated server, the synchronization will be one way synchronization.
+
+
+2. Implementation details
+
+   2.1 Bulletin Board File server
+
+      The server takes [bbfile] as database. Most of the functions are written in bulletin.hpp and bulletin.cc. 
+      It uses map, C++ library, to manage the messages.
+
+   2.2 Synchronization Server
+   
+      Most of the functions are written in sync.hpp and syns.cc.
+      The master broadcasts to all the peers (in the list peers) a “commit” message. The
+      servers which are available for synchronization acknowledge positively the message, "1.0 OK"; the servers
+      which are not ready (because of, e.g., a system failure) will send back a negative acknowledgment, "2.0 XXX".
+      The master blocks until it receives all the acknowledgments. If there exists a negative acknowledgment, 
+      the master sends an “abort” message to the slaves and aborts the writing altogether (sending a 3.2 ERROR message to the respective client). 
+      The slaves will abandon the whole process if they receive a negative acknowledgment.
+
+   2.3 some trick about coding
+      both bulletin handling and synchronization handling are wriiten in class so that maintaining in the future would be easier.
+
+
+3. Testing
+
+   The programs has been tested under 2 scenarios
+
+   3.1 Client-Server-Client
+      Client A and B under same Server while debug mode is on. 
+      Client A read message wriiten by B successfully. 
+      And 2 clients write at the same time has been avoided.
+
+   3.2 Client-Server-Server-Client
+      Client A connects with server A while client B connects with server B.
+      Server A and B are mutally connected which means they are both on each other's PEERS list.
+      After A writes, B can read it successfully.
+
+
+4. Known Bugs

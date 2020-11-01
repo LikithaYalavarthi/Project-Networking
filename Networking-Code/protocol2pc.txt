@@ -1,0 +1,59 @@
+
+1. Sending Protocol
+
+    1.1 Ideas about the protocol
+        
+        Sender first sends n ACK packets to receiver.
+        If they all of them return positve, message will be sent.
+        If not, sender sends calloff to those positve receiver.
+
+    1.2 States
+
+        State idle:
+            if (write)
+                send "commit" x n peers
+                if (positve_feedback < n)
+                    return cancel
+                return commit
+            return idle
+
+        State commit:
+            send sync_message
+            if (sucess)
+                return
+            else
+                return cancel
+
+        State cancel:
+            send "calloff"
+            return idle
+
+
+2. Receiving Protocol
+
+    2.1 Ideas about the protocol
+
+        Receiver is waiting for the ACK message. 
+        If there's some unknwon command, It won't response to them.
+        If ACK is received, it check whether the server is writing.
+        If I/O is processing, it sends negative besides of positve.
+        After receiveing message, receiver waits for another ACK.
+
+    2.2 States
+
+        State idle:
+            if (recv "commit")
+                if (available)
+                    return ready
+                else
+                    send negative_feedback
+                    return idle
+            return idle
+        
+        State ready:
+            if (recv sync_message)
+                save in bbfile
+                return idle
+
+            except:
+                return idle
